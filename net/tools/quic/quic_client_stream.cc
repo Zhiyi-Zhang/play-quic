@@ -20,5 +20,9 @@ void QuicClientStream::WriteStringPiece(base::StringPiece data, bool fin) {
   this->WriteOrBufferData(data, fin, nullptr);
 }
 
+void OnDataAvailable() {
+  // do nothing
+}
+
 }
 }

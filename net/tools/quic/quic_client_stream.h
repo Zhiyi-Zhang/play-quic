@@ -20,6 +20,7 @@ namespace tools {
     uint32_t ProcessRawData(const char* data, uint32_t data_len);
 
     void WriteStringPiece(base::StringPiece data, bool fin);
+    void OnDataAvailable();
   };
 
 }
