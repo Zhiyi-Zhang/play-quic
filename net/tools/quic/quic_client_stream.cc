@@ -16,12 +16,9 @@ uint32_t QuicClientStream::ProcessRawData(const char* data, uint32_t data_len) {
   return data_len;
 }
 
-QuicPriority QuicClientStream::EffectivePriority() const {
-  return (QuicPriority) 0;
-}
-
 void QuicClientStream::WriteStringPiece(base::StringPiece data, bool fin) {
   this->WriteOrBufferData(data, fin, nullptr);
 }
+
 }
 }
