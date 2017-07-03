@@ -8,6 +8,8 @@
 #define NET_TOOLS_QUIC_QUIC_CLIENT_SESSION_H_
 
 #include <string>
+#include <stdint.h>
+#include <memory>
 
 #include "net/quic/core/quic_client_session_base.h"
 #include "net/quic/core/quic_crypto_client_stream.h"
