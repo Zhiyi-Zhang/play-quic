@@ -11,7 +11,7 @@ namespace net {
 
     QuicClientStream::~QuicClientStream() {}
 
-    uint32 QuicClientStream::ProcessRawData(const char* data, uint32 data_len) {
+    uint32_t QuicClientStream::ProcessRawData(const char* data, uint32_t data_len) {
       std::cout << "Received " << data_len << " bytes of data\n";
       return data_len;
     }
@@ -19,7 +19,7 @@ namespace net {
     QuicPriority QuicClientStream::EffectivePriority() const {
       return (QuicPriority) 0;
     }
-    
+
     void QuicClientStream::WriteStringPiece(base::StringPiece data, bool fin) {
       this->WriteOrBufferData(data, fin, nullptr);
     }

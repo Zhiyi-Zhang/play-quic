@@ -5,8 +5,8 @@
 #include "net/tools/quic/quic_client_session.h"
 
 #include "base/logging.h"
-#include "net/quic/crypto/crypto_protocol.h"
-#include "net/quic/quic_server_id.h"
+#include "net/quic/core/crypto/crypto_protocol.h"
+#include "net/quic/core/quic_server_id.h"
 
 using std::string;
 
@@ -33,7 +33,7 @@ void QuicClientSession::CryptoConnect() {
   DCHECK(flow_controller());
   crypto_stream_->CryptoConnect();
 }
-  
+
 QuicClientStream* QuicClientSession::CreateClientStream() {
   ReliableQuicStream* stream = new QuicClientStream(GetNextStreamId(), this);
   ActivateStream(stream);
