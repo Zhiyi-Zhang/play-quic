@@ -19,7 +19,7 @@
 #include "net/quic/core/quic_buffered_packet_store.h"
 #include "net/quic/core/quic_connection.h"
 #include "net/quic/core/quic_crypto_server_stream.h"
-#include "net/quic/core/quic_packets.h"
+#include "net/quic/core/quic_protocol.h"
 #include "net/quic/core/quic_session.h"
 #include "net/quic/core/quic_version_manager.h"
 #include "net/quic/platform/api/quic_containers.h"
