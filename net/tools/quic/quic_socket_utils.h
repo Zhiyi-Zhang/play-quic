@@ -11,10 +11,9 @@
 #include <sys/socket.h>
 #include <string>
 
-#include "base/basictypes.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_bandwidth.h"
-#include "net/quic/quic_types.h"
+#include "net/quic/core/quic_bandwidth.h"
+#include "net/quic/core/quic_types.h"
 #include "net/base/net_util.h"
 
 namespace net {
@@ -79,7 +78,7 @@ class QuicSocketUtils {
 };
 
 }  // namespace tools
- 
+
 // Convenience struct for when you need a |struct sockaddr|.
 struct SockaddrStorage {
   SockaddrStorage() : addr_len(sizeof(addr_storage)),

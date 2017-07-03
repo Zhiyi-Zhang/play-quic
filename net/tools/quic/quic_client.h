@@ -9,9 +9,9 @@
 #define NET_TOOLS_QUIC_QUIC_CLIENT_H_
 
 #include <string>
+#include <memory>
 
 #include "base/command_line.h"
-// #include "base/memory/scoped_ptr.h"
 #include "base/strings/string_piece.h"
 #include "net/base/ip_endpoint.h"
 #include "net/quic/core/crypto/crypto_handshake.h"
@@ -115,17 +115,17 @@ class QuicClient : public EpollCallbackInterface,
 
   // Writer used to actually send packets to the wire. Needs to outlive
   // |session_|.
-  scoped_ptr<QuicPacketWriter> writer_;
+  std::unique_ptr<QuicPacketWriter> writer_;
 
   // Session which manages streams.
-  scoped_ptr<QuicClientSession> session_;
+  std::unique_ptr<QuicClientSession> session_;
   // Listens for events on the client socket.
   EpollServer* epoll_server_;
   // UDP socket.
   int fd_;
 
   // Helper to be used by created connections.
-  scoped_ptr<QuicEpollConnectionHelper> helper_;
+  std::unique_ptr<QuicEpollConnectionHelper> helper_;
 
   // Tracks if the client is initialized to connect.
   bool initialized_;

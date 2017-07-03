@@ -10,14 +10,14 @@
 #define NET_TOOLS_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
 
 #include <deque>
+#include <memory>
 
-#include "base/basictypes.h"
 #include "net/base/linked_hash_map.h"
-#include "net/quic/quic_blocked_writer_interface.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_framer.h"
-#include "net/quic/quic_packet_writer.h"
-#include "net/quic/quic_protocol.h"
+#include "net/quic/core/quic_blocked_writer_interface.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_framer.h"
+#include "net/quic/core/quic_packet_writer.h"
+#include "net/quic/core/quic_protocol.h"
 
 namespace net {
 namespace tools {
@@ -169,7 +169,7 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
 
   // Alarm to clean up connection_ids that have out lived their duration in
   // time wait state.
-  scoped_ptr<QuicAlarm> connection_id_clean_up_alarm_;
+  std::unique_ptr<QuicAlarm> connection_id_clean_up_alarm_;
 
   // Clock to efficiently measure approximate time.
   const QuicClock* clock_;
