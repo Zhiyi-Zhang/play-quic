@@ -21,11 +21,10 @@ QuicClientSession::QuicClientSession(const QuicConfig& config,
 QuicClientSession::~QuicClientSession() {
 }
 
-void QuicClientSession::InitializeSession(
-    const QuicServerId& server_id,
-    QuicCryptoClientConfig* crypto_config) {
-  crypto_stream_.reset(
-      new QuicCryptoClientStream(server_id, this, nullptr, crypto_config));
+void QuicClientSession::InitializeSession(const QuicServerId& server_id,
+                                          QuicCryptoClientConfig* crypto_config)
+{
+  crypto_stream_.reset(new QuicCryptoClientStream(server_id, this, nullptr, crypto_config, nullptr));
   QuicSession::Initialize();
 }
 
@@ -35,7 +34,7 @@ void QuicClientSession::CryptoConnect() {
 }
 
 QuicClientStream* QuicClientSession::CreateClientStream() {
-  ReliableQuicStream* stream = new QuicClientStream(GetNextStreamId(), this);
+  ReliableQuicStream* stream = new QuicClientStream(GetNextOutgoingStreamId(), this);
   ActivateStream(stream);
   return (QuicClientStream*) stream;
 }
