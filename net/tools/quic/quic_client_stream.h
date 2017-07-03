@@ -1,4 +1,4 @@
-#include "net/quic/quic_data_stream.h"
+#include "net/quic/core/quic_data_stream.h"
 
 namespace net {
   namespace tools {

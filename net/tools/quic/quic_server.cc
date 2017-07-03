@@ -60,7 +60,7 @@ QuicServer::QuicServer(const QuicConfig& config,
 
   QuicEpollClock clock(&epoll_server_);
 
-  scoped_ptr<CryptoHandshakeMessage> scfg(
+  unique_ptr<CryptoHandshakeMessage> scfg(
       crypto_config_.AddDefaultConfig(
           QuicRandom::GetInstance(), &clock,
           QuicCryptoServerConfig::ConfigOptions()));
@@ -167,9 +167,8 @@ void QuicServer::OnEvent(int fd, EpollEvent* event) {
     DVLOG(1) << "EPOLLIN";
     bool read = true;
     while (read) {
-      read = ReadAndDispatchSinglePacket(
-					 fd_, port_, dispatcher_.get(),
-					 overflow_supported_ ? &packets_dropped_ : nullptr);
+      read = ReadAndDispatchSinglePacket(fd_, port_, dispatcher_.get(),
+                                         overflow_supported_ ? &packets_dropped_ : nullptr);
     }
   }
   if (event->in_events & EPOLLOUT) {

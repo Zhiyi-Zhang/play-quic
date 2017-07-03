@@ -5,10 +5,9 @@
 #ifndef NET_TOOLS_QUIC_QUIC_DEFAULT_PACKET_WRITER_H_
 #define NET_TOOLS_QUIC_QUIC_DEFAULT_PACKET_WRITER_H_
 
-#include "base/basictypes.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/quic_packet_writer.h"
-#include "net/quic/quic_connection.h"
+#include "net/quic/core/quic_packet_writer.h"
+#include "net/quic/core/quic_connection.h"
 
 namespace net {
 

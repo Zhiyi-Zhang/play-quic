@@ -8,12 +8,10 @@
 #ifndef NET_TOOLS_QUIC_QUIC_SERVER_H_
 #define NET_TOOLS_QUIC_QUIC_SERVER_H_
 
-#include "base/basictypes.h"
-#include "base/memory/scoped_ptr.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/crypto/quic_crypto_server_config.h"
-#include "net/quic/quic_config.h"
-#include "net/quic/quic_framer.h"
+#include "net/quic/core/crypto/quic_crypto_server_config.h"
+#include "net/quic/core/quic_config.h"
+#include "net/quic/core/quic_framer.h"
 #include "net/tools/epoll_server/epoll_server.h"
 #include "net/tools/quic/quic_default_packet_writer.h"
 
@@ -79,7 +77,7 @@ class QuicServer : public EpollCallbackInterface {
 
  private:
   // Accepts data from the framer and demuxes clients to sessions.
-  scoped_ptr<QuicDispatcher> dispatcher_;
+  unique_ptr<QuicDispatcher> dispatcher_;
   // Frames incoming packets and hands them to the dispatcher.
   EpollServer epoll_server_;
 
