@@ -13,7 +13,7 @@
 
 #include "base/logging.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/crypto/quic_random.h"
+#include "net/quic/core/crypto/quic_random.h"
 #include "net/quic/core/quic_connection.h"
 #include "net/quic/core/quic_data_reader.h"
 #include "net/quic/core/quic_protocol.h"

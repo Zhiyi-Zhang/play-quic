@@ -11,10 +11,10 @@
 #include <sys/types.h>
 #include <set>
 
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_packet_writer.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_time.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_packet_writer.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/quic_time.h"
 #include "net/tools/quic/quic_default_packet_writer.h"
 #include "net/tools/quic/quic_epoll_clock.h"
 
