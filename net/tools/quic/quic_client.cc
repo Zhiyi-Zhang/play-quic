@@ -12,12 +12,12 @@
 #include <unistd.h>
 
 #include "base/logging.h"
-#include "src/net/base/ip_endpoint.h"
+#include "net/base/ip_endpoint.h"
 #include "net/quic/crypto/quic_random.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_data_reader.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_server_id.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_data_reader.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/quic_server_id.h"
 #include "net/tools/epoll_server/epoll_server.h"
 #include "net/tools/quic/quic_epoll_connection_helper.h"
 #include "net/tools/quic/quic_socket_utils.h"
