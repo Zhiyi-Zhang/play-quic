@@ -45,8 +45,7 @@ class QuicClientSession : public QuicSession {
   void OnProofVerifyDetailsAvailable(const ProofVerifyDetails&) {};
 
  private:
-  unique_ptr<QuicCryptoClientStream> crypto_stream_;
-
+  std::unique_ptr<QuicCryptoClientStream> crypto_stream_;
 };
 
 }  // namespace tools
