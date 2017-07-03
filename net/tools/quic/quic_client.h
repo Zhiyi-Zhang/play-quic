@@ -10,15 +10,14 @@
 
 #include <string>
 
-#include "base/basictypes.h"
 #include "base/command_line.h"
-#include "base/memory/scoped_ptr.h"
+// #include "base/memory/scoped_ptr.h"
 #include "base/strings/string_piece.h"
 #include "net/base/ip_endpoint.h"
-#include "net/quic/crypto/crypto_handshake.h"
-#include "net/quic/quic_config.h"
-#include "net/quic/quic_framer.h"
-#include "net/quic/quic_packet_creator.h"
+#include "net/quic/core/crypto/crypto_handshake.h"
+#include "net/quic/core/quic_config.h"
+#include "net/quic/core/quic_framer.h"
+#include "net/quic/core/quic_packet_creator.h"
 #include "net/tools/epoll_server/epoll_server.h"
 #include "net/tools/quic/quic_client_session.h"
 

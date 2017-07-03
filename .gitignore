@@ -1,4 +1,7 @@
 **/*.o
+.DS_*
+*/.DS_*
+*/*/.DS_*
 quic_perf_client
 quic_perf_server
 QuicToy.config

@@ -9,7 +9,6 @@
 
 #include <string>
 
-#include "base/basictypes.h"
 #include "net/quic/quic_client_session_base.h"
 #include "net/quic/quic_crypto_client_stream.h"
 #include "net/quic/quic_protocol.h"
@@ -30,7 +29,7 @@ class QuicClientSession : public QuicSession {
 
   void InitializeSession(const QuicServerId& server_id,
                          QuicCryptoClientConfig* config);
-  
+
   void CryptoConnect();
 
   QuicClientStream* CreateClientStream();
