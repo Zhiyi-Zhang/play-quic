@@ -1,10 +1,10 @@
 #ifndef NET_TOOLS_QUIC_SERVER_STREAM_
 #define NET_TOOLS_QUIC_SERVER_STREAM_
 
-#include "net/quic/quic_alarm.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_data_stream.h"
+#include "net/quic/core/quic_alarm.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/reliable_quic_stream.h"
 
 namespace net {
   namespace tools {

@@ -11,13 +11,11 @@
 #include <string>
 #include <vector>
 
-#include "base/basictypes.h"
 #include "base/containers/hash_tables.h"
-#include "base/memory/scoped_ptr.h"
-#include "net/quic/quic_crypto_server_stream.h"
-#include "net/quic/quic_protocol.h"
-#include "net/quic/quic_session.h"
-#include "net/quic/quic_connection.h"
+#include "net/quic/core/quic_crypto_server_stream.h"
+#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/quic_session.h"
+#include "net/quic/core/quic_connection.h"
 
 #include "net/tools/quic/quic_server_stream.h"
 
@@ -80,7 +78,7 @@ class QuicServerSession : public QuicSession {
   QuicCryptoServerStream* GetCryptoStream() override;
 
  private:
-  scoped_ptr<QuicCryptoServerStream> crypto_stream_;
+  std::unique_ptr<QuicCryptoServerStream> crypto_stream_;
   QuicServerSessionVisitor* visitor_;
 
   QuicConnectionHelperInterface* helper_;

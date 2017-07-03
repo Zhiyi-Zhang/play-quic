@@ -7,8 +7,8 @@
 #include "net/tools/quic/quic_server_session.h"
 
 #include "base/logging.h"
-#include "net/quic/quic_connection.h"
-#include "net/quic/quic_flags.h"
+#include "net/quic/core/quic_connection.h"
+#include "net/quic/core/quic_flags.h"
 
 #include "net/tools/quic/quic_server_stream.h"
 
