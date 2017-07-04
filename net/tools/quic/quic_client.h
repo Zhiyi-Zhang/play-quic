@@ -20,6 +20,7 @@
 #include "net/quic/core/quic_packet_creator.h"
 #include "net/tools/epoll_server/epoll_server.h"
 #include "net/tools/quic/quic_client_session.h"
+#include "net/quic/core/quic_spdy_stream.h"
 
 namespace net {
 
@@ -31,7 +32,7 @@ namespace tools {
 class QuicEpollConnectionHelper;
 
 class QuicClient : public EpollCallbackInterface,
-                   public QuicDataStream::Visitor {
+                   public QuicSpdyStream::Visitor {
  public:
   // Create a quic client, which will have events managed by an externally owned
   // EpollServer.
@@ -68,7 +69,7 @@ class QuicClient : public EpollCallbackInterface,
 
   void WaitForEvents();
 
-  void OnClose(QuicDataStream* stream) {}
+  void OnClose(QuicSpdyStream* stream) {}
 
   bool connected() const;
 
