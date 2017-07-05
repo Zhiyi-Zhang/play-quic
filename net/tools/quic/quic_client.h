@@ -8,54 +8,49 @@
 #ifndef NET_TOOLS_QUIC_QUIC_CLIENT_H_
 #define NET_TOOLS_QUIC_QUIC_CLIENT_H_
 
-#include <string>
+#include <cstdint>
 #include <memory>
+#include <string>
 
 #include "base/command_line.h"
-#include "base/strings/string_piece.h"
-#include "net/base/ip_endpoint.h"
-#include "net/quic/core/crypto/crypto_handshake.h"
+#include "base/macros.h"
+#include "net/quic/core/quic_client_push_promise_index.h"
 #include "net/quic/core/quic_config.h"
-#include "net/quic/core/quic_framer.h"
-#include "net/quic/core/quic_packet_creator.h"
-#include "net/tools/epoll_server/epoll_server.h"
-#include "net/tools/quic/quic_client_session.h"
 #include "net/quic/core/quic_spdy_stream.h"
+#include "net/quic/platform/api/quic_containers.h"
+#include "net/tools/epoll_server/epoll_server.h"
+#include "net/tools/quic/quic_client_base.h"
+#include "net/tools/quic/quic_client_session.h"
+#include "net/tools/quic/quic_packet_reader.h"
+#include "net/tools/quic/quic_process_packet_interface.h"
 
 namespace net {
 
-class ProofVerifier;
 class QuicServerId;
 
-namespace tools {
+namespace test {
+class QuicClientPeer;
+}  // namespace test
 
-class QuicEpollConnectionHelper;
-
-class QuicClient : public EpollCallbackInterface,
-                   public QuicSpdyStream::Visitor {
+class QuicClient : public QuicClientBase,
+                   public EpollCallbackInterface,
+                   public ProcessPacketInterface {
  public:
   // Create a quic client, which will have events managed by an externally owned
   // EpollServer.
-  QuicClient(IPEndPoint server_address,
+  QuicClient(QuicSocketAddress server_address,
              const QuicServerId& server_id,
              const QuicVersionVector& supported_versions,
-             EpollServer* epoll_server);
+             EpollServer* epoll_server,
+             std::unique_ptr<ProofVerifier> proof_verifier);
+  QuicClient(QuicSocketAddress server_address,
+             const QuicServerId& server_id,
+             const QuicVersionVector& supported_versions,
+             const QuicConfig& config,
+             EpollServer* epoll_server,
+             std::unique_ptr<ProofVerifier> proof_verifier);
 
   ~QuicClient() override;
-
-  // Initializes the client to create a connection. Should be called exactly
-  // once before calling StartConnect or Connect. Returns true if the
-  // initialization succeeds, false otherwise.
-  bool Initialize();
-
-  // "Connect" to the QUIC server, including performing synchronous crypto
-  // handshake.
-  bool Connect();
-
-  QuicClientStream* CreateClientStream();
-
-  // Disconnects from the QUIC server.
-  void Disconnect();
 
   // From EpollCallbackInterface
   void OnRegistration(EpollServer* eps, int fd, int event_mask) override {}
@@ -67,61 +62,50 @@ class QuicClient : public EpollCallbackInterface,
   void OnUnregistration(int fd, bool replaced) override {}
   void OnShutdown(EpollServer* eps, int fd) override {}
 
-  void WaitForEvents();
+  // If the client has at least one UDP socket, return the latest created one.
+  // Otherwise, return -1.
+  int GetLatestFD() const;
 
-  void OnClose(QuicSpdyStream* stream) {}
+  // From QuicClientBase
+  QuicSocketAddress GetLatestClientAddress() const override;
 
-  bool connected() const;
+  // Implements ProcessPacketInterface. This will be called for each received
+  // packet.
+  void ProcessPacket(const QuicSocketAddress& self_address,
+                     const QuicSocketAddress& peer_address,
+                     const QuicReceivedPacket& packet) override;
 
- private:
+ protected:
+  // From QuicClientBase
+  QuicPacketWriter* CreateQuicPacketWriter() override;
+  void RunEventLoop() override;
+  bool CreateUDPSocketAndBind(QuicSocketAddress server_address,
+                              QuicIpAddress bind_to_address,
+                              int bind_to_port) override;
+  void CleanUpAllUDPSockets() override;
+
+  // If |fd| is an open UDP socket, unregister and close it. Otherwise, do
+  // nothing.
+  virtual void CleanUpUDPSocket(int fd);
+
   EpollServer* epoll_server() { return epoll_server_; }
 
-  class DummyAlarmClock : public QuicAlarmFactory {
+  const QuicLinkedHashMap<int, QuicSocketAddress>& fd_address_map() const {
+    return fd_address_map_;
+  }
 
-  };
+ private:
+  friend class test::QuicClientPeer;
 
-  // Used during initialization: creates the UDP socket FD, sets socket options,
-  // and binds the socket to our address.
-  bool CreateUDPSocket();
+  // Actually clean up |fd|.
+  void CleanUpUDPSocketImpl(int fd);
 
-  // Read a UDP packet and hand it to the framer.
-  bool ReadAndProcessPacket();
-
-  // Address of the server.
-  const IPEndPoint server_address_;
-
-  // |server_id_| is a tuple (hostname, port, is_https) of the server.
-  QuicServerId server_id_;
-
-  // config_ and crypto_config_ contain configuration and cached state about
-  // servers.
-  QuicConfig config_;
-  QuicCryptoClientConfig crypto_config_;
-
-  // Address of the client if the client is connected to the server.
-  IPEndPoint client_address_;
-
-  // If initialized, the address to bind to.
-  IPAddressNumber bind_to_address_;
-  // Local port to bind to. Initialize to 0.
-  int local_port_;
-
-  // Writer used to actually send packets to the wire. Needs to outlive
-  // |session_|.
-  std::unique_ptr<QuicPacketWriter> writer_;
-
-  // Session which manages streams.
-  std::unique_ptr<QuicClientSession> session_;
   // Listens for events on the client socket.
   EpollServer* epoll_server_;
-  // UDP socket.
-  int fd_;
 
-  // Helper to be used by created connections.
-  std::unique_ptr<QuicEpollConnectionHelper> helper_;
-
-  // Tracks if the client is initialized to connect.
-  bool initialized_;
+  // Map mapping created UDP sockets to their addresses. By using linked hash
+  // map, the order of socket creation can be recorded.
+  QuicLinkedHashMap<int, QuicSocketAddress> fd_address_map_;
 
   // If overflow_supported_ is true, this will be the number of packets dropped
   // during the lifetime of the server.
@@ -131,17 +115,13 @@ class QuicClient : public EpollCallbackInterface,
   // because the socket would otherwise overflow.
   bool overflow_supported_;
 
-  // This vector contains QUIC versions which we currently support.
-  // This should be ordered such that the highest supported version is the first
-  // element, with subsequent elements in descending order (versions can be
-  // skipped as necessary). We will always pick supported_versions_[0] as the
-  // initial version to use.
-  QuicVersionVector supported_versions_;
+  // Point to a QuicPacketReader object on the heap. The reader allocates more
+  // space than allowed on the stack.
+  std::unique_ptr<QuicPacketReader> packet_reader_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicClient);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // NET_TOOLS_QUIC_QUIC_CLIENT_H_
