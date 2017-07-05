@@ -9,22 +9,25 @@
 #ifndef NET_TOOLS_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
 #define NET_TOOLS_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
 
+#include <stddef.h>
+
 #include <deque>
 #include <memory>
 
-#include "net/base/linked_hash_map.h"
+#include "base/macros.h"
 #include "net/quic/core/quic_blocked_writer_interface.h"
 #include "net/quic/core/quic_connection.h"
 #include "net/quic/core/quic_framer.h"
 #include "net/quic/core/quic_packet_writer.h"
-#include "net/quic/core/quic_protocol.h"
+#include "net/quic/core/quic_packets.h"
+#include "net/quic/core/quic_session.h"
+#include "net/quic/platform/api/quic_containers.h"
+#include "net/quic/platform/api/quic_flags.h"
 
 namespace net {
-namespace tools {
-
-class QuicServerSessionVisitor;
 
 namespace test {
+class QuicDispatcherPeer;
 class QuicTimeWaitListManagerPeer;
 }  // namespace test
 
@@ -39,26 +42,36 @@ class QuicTimeWaitListManagerPeer;
 // connection_id.
 class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
  public:
+  class Visitor : public QuicSession::Visitor {
+   public:
+    // Called after the given connection is added to the time-wait std::list.
+    virtual void OnConnectionAddedToTimeWaitList(
+        QuicConnectionId connection_id) = 0;
+  };
+
   // writer - the entity that writes to the socket. (Owned by the dispatcher)
   // visitor - the entity that manages blocked writers. (The dispatcher)
-  // helper - used to run clean up alarms. (Owned by the dispatcher)
+  // helper - provides a clock (Owned by the dispatcher)
+  // alarm_factory - used to run clean up alarms. (Owned by the dispatcher)
   QuicTimeWaitListManager(QuicPacketWriter* writer,
-                          QuicServerSessionVisitor* visitor,
+                          Visitor* visitor,
                           QuicConnectionHelperInterface* helper,
-                          const QuicVersionVector& supported_versions);
+                          QuicAlarmFactory* alarm_factory);
   ~QuicTimeWaitListManager() override;
 
   // Adds the given connection_id to time wait state for time_wait_period_.
-  // Henceforth, any packet bearing this connection_id should not be processed
-  // while the connection_id remains in this list. If a non-nullptr
-  // |close_packet| is provided, the TimeWaitListManager takes ownership of it
-  // and sends it again when packets are received for added connection_ids. If
-  // nullptr, a public reset packet is sent with the specified |version|.
-  // DCHECKs that connection_id is not already on the list. "virtual" to
-  // override in tests.
-  virtual void AddConnectionIdToTimeWait(QuicConnectionId connection_id,
-                                         QuicVersion version,
-                                         QuicEncryptedPacket* close_packet);
+  // If |termination_packets| are provided, copies of these packets will be sent
+  // when a packet with this connection ID is processed. If no termination
+  // packets are provided, then a PUBLIC_RESET will be sent with the specified
+  // |version|. Any termination packets will be move from |termination_packets|
+  // and will become owned by the manager. If |connection_rejected_statelessly|
+  // is true, it means that the connection was closed due to a stateless reject,
+  // and termination packets are expected.
+  virtual void AddConnectionIdToTimeWait(
+      QuicConnectionId connection_id,
+      QuicVersion version,
+      bool connection_rejected_statelessly,
+      std::vector<std::unique_ptr<QuicEncryptedPacket>>* termination_packets);
 
   // Returns true if the connection_id is in time wait state, false otherwise.
   // Packets received for this connection_id should not lead to creation of new
@@ -70,11 +83,9 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // connection_id. Sending of the public reset packet is throttled by using
   // exponential back off. DCHECKs for the connection_id to be in time wait
   // state. virtual to override in tests.
-  virtual void ProcessPacket(const IPEndPoint& server_address,
-                             const IPEndPoint& client_address,
-                             QuicConnectionId connection_id,
-                             QuicPacketSequenceNumber sequence_number,
-                             const QuicEncryptedPacket& packet);
+  virtual void ProcessPacket(const QuicSocketAddress& server_address,
+                             const QuicSocketAddress& client_address,
+                             QuicConnectionId connection_id);
 
   // Called by the dispatcher when the underlying socket becomes writable again,
   // since we might need to send pending public reset packets which we didn't
@@ -96,11 +107,25 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // The number of connections on the time-wait list.
   size_t num_connections() const { return connection_id_map_.size(); }
 
+  // Sends a version negotiation packet for |connection_id| announcing support
+  // for |supported_versions| to |client_address| from |server_address|.
+  virtual void SendVersionNegotiationPacket(
+      QuicConnectionId connection_id,
+      const QuicVersionVector& supported_versions,
+      const QuicSocketAddress& server_address,
+      const QuicSocketAddress& client_address);
+
  protected:
-  virtual QuicEncryptedPacket* BuildPublicReset(
+  virtual std::unique_ptr<QuicEncryptedPacket> BuildPublicReset(
       const QuicPublicResetPacket& packet);
 
+  // Creates a public reset packet and sends it or queues it to be sent later.
+  virtual void SendPublicReset(const QuicSocketAddress& server_address,
+                               const QuicSocketAddress& client_address,
+                               QuicConnectionId connection_id);
+
  private:
+  friend class test::QuicDispatcherPeer;
   friend class test::QuicTimeWaitListManagerPeer;
 
   // Internal structure to store pending public reset packets.
@@ -110,15 +135,9 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
   // number of received packets.
   bool ShouldSendResponse(int received_packet_count);
 
-  // Creates a public reset packet and sends it or queues it to be sent later.
-  void SendPublicReset(const IPEndPoint& server_address,
-                       const IPEndPoint& client_address,
-                       QuicConnectionId connection_id,
-                       QuicPacketSequenceNumber rejected_sequence_number);
-
   // Either sends the packet and deletes it or makes pending_packets_queue_ the
   // owner of the packet.
-  void SendOrQueuePacket(QueuedPacket* packet);
+  void SendOrQueuePacket(std::unique_ptr<QueuedPacket> packet);
 
   // Sends the packet out. Returns true if the packet was successfully consumed.
   // If the writer got blocked and did not buffer the packet, we'll need to keep
@@ -145,24 +164,28 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
     ConnectionIdData(int num_packets_,
                      QuicVersion version_,
                      QuicTime time_added_,
-                     QuicEncryptedPacket* close_packet)
-        : num_packets(num_packets_),
-          version(version_),
-          time_added(time_added_),
-          close_packet(close_packet) {}
+                     bool connection_rejected_statelessly);
+
+    ConnectionIdData(const ConnectionIdData& other) = delete;
+    ConnectionIdData(ConnectionIdData&& other);
+
+    ~ConnectionIdData();
+
     int num_packets;
     QuicVersion version;
     QuicTime time_added;
-    QuicEncryptedPacket* close_packet;
+    // These packets may contain CONNECTION_CLOSE frames, or SREJ messages.
+    std::vector<std::unique_ptr<QuicEncryptedPacket>> termination_packets;
+    bool connection_rejected_statelessly;
   };
 
-  // linked_hash_map allows lookup by ConnectionId and traversal in add order.
-  typedef linked_hash_map<QuicConnectionId, ConnectionIdData> ConnectionIdMap;
+  // QuicLinkedHashMap allows lookup by ConnectionId and traversal in add order.
+  typedef QuicLinkedHashMap<QuicConnectionId, ConnectionIdData> ConnectionIdMap;
   ConnectionIdMap connection_id_map_;
 
   // Pending public reset packets that need to be sent out to the client
   // when we are given a chance to write by the dispatcher.
-  std::deque<QueuedPacket*> pending_packets_queue_;
+  std::deque<std::unique_ptr<QueuedPacket>> pending_packets_queue_;
 
   // Time period for which connection_ids should remain in time wait state.
   const QuicTime::Delta time_wait_period_;
@@ -178,12 +201,11 @@ class QuicTimeWaitListManager : public QuicBlockedWriterInterface {
   QuicPacketWriter* writer_;
 
   // Interface that manages blocked writers.
-  QuicServerSessionVisitor* visitor_;
+  Visitor* visitor_;
 
   DISALLOW_COPY_AND_ASSIGN(QuicTimeWaitListManager);
 };
 
-}  // namespace tools
 }  // namespace net
 
 #endif  // NET_TOOLS_QUIC_QUIC_TIME_WAIT_LIST_MANAGER_H_
