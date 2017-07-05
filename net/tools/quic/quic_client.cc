@@ -21,6 +21,7 @@
 #include "net/tools/epoll_server/epoll_server.h"
 #include "net/tools/quic/quic_epoll_connection_helper.h"
 #include "net/tools/quic/quic_socket_utils.h"
+#include "net/tools/quic/quic_epoll_alarm_factory.h"
 
 #ifndef SO_RXQ_OVFL
 #define SO_RXQ_OVFL 40
@@ -79,18 +80,6 @@ bool QuicClient::Initialize() {
   initialized_ = true;
   return true;
 }
-
-QuicClient::DummyPacketWriterFactory::DummyPacketWriterFactory(
-    QuicPacketWriter* writer)
-    : writer_(writer) {}
-
-QuicClient::DummyPacketWriterFactory::~DummyPacketWriterFactory() {}
-
-QuicPacketWriter* QuicClient::DummyPacketWriterFactory::Create(
-    QuicConnection* /*connection*/) const {
-  return writer_;
-}
-
 
 bool QuicClient::CreateUDPSocket() {
   int address_family = server_address_.GetSockAddrFamily();
@@ -158,13 +147,12 @@ bool QuicClient::CreateUDPSocket() {
 bool QuicClient::Connect() {
   QuicPacketWriter* writer = new QuicDefaultPacketWriter(fd_);
 
-  DummyPacketWriterFactory factory(writer);
-
   session_.reset(new QuicClientSession(
       config_,
       new QuicConnection((QuicConnectionId) QuicRandom::GetInstance()->RandUint64(),
                          server_address_, helper_.get(),
-                         factory,
+                         new QuicEpollAlarmFactory(epoll_server_),
+                         writer,
                          /* owns_writer= */ false, /* is_server */ Perspective::IS_CLIENT,
                          server_id_.is_https(), supported_versions_)));
 
